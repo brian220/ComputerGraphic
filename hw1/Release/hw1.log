@@ -1,0 +1,2 @@
+﻿  Source.cpp
+Source.cpp(2): fatal error C1083: 無法開啟包含檔案: 'glut.h': No such file or directory

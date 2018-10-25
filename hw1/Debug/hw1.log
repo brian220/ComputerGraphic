@@ -1,0 +1,3 @@
+﻿  viewingAndTransformation.cpp
+c:\users\brian220\desktop\opengl-20181024\source_code\viewingandtransformation.cpp(176): warning C4065: switch 陳述式包含 'default'，但沒有 'case' 標籤
+  hw1.vcxproj -> C:\Users\brian220\Desktop\OpenGL-20181024\hw1\Debug\hw1.exe
