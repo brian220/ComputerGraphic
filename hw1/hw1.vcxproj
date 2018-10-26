@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\source_code\baiscDraw.cpp" />
     <ClCompile Include="..\..\source_code\basicGLUT.cpp" />
     <ClCompile Include="..\..\source_code\viewingAndTransformation.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

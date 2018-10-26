@@ -1,3 +1,4 @@
+/*
 #include "glut.h"
 #include <iostream>
 
@@ -10,6 +11,7 @@ void lighting();
 
 int width = 400, height = 400;
 int degree = 0;
+GLfloat red[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 int main(int argc, char** argv)
 {
@@ -29,6 +31,36 @@ int main(int argc, char** argv)
 	glutMainLoop();
 
 	return 0;
+}
+
+const float PI = 3.141592f;
+void printTriangleVertex(GLfloat radius, GLfloat angle1, GLfloat angle2, GLfloat *color) {
+	GLfloat x = radius * cos(angle2) * sin(angle1);
+	GLfloat y = radius * sin(angle2) * sin(angle1);
+	GLfloat z = radius * cos(angle1);
+	glVertex3f(x, y, z);
+}
+
+void drawPlanet(GLfloat radius, int slice, int stack, GLfloat *color) {
+	GLfloat hAngle, vAngle;
+	GLfloat horizontalStep = 2 * PI / GLfloat(slice);
+	GLfloat verticalStep = PI / GLfloat(stack);
+	for (hAngle = 0.0; hAngle < 2.01 * PI; hAngle += horizontalStep) {
+		glBegin(GL_TRIANGLE_STRIP);
+		for (vAngle = 0.0; vAngle < 2.01 * PI; vAngle += verticalStep) {
+			printTriangleVertex(radius, hAngle, vAngle, color);
+			printTriangleVertex(radius, hAngle + horizontalStep, vAngle, color);
+		}
+		glEnd();
+	}
+}
+
+
+
+
+void drawSun() {
+	//glColor3f(1.0f, 0.65f, 0.0f);
+	drawPlanet(0.5 , 240, 60, red);
 }
 
 void display()
@@ -73,9 +105,12 @@ void display()
 	glPopMatrix();
 
 	glutSolidSphere(1, 18, 18);
+	//drawSun();
 
 	glutSwapBuffers();
 }
+
+
 
 void reshape(int _width, int _height) {
 	width = _width;
@@ -100,3 +135,4 @@ void lighting()
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);	//set ambient color of light0
 	glLightfv(GL_LIGHT0, GL_POSITION, position);		//set position of light 0
 }
+*/
