@@ -8,7 +8,7 @@
 using namespace std;
 
 const float PI = 3.141592f;
-float X = 1;
+float X = 0;
 
 struct VertexAttribute
 {
@@ -28,6 +28,7 @@ bool start;
 VertexAttribute *drawEarth();
 VertexAttribute *drawPlane();
 void display();
+void idle();
 void reshape(GLsizei w, GLsizei h);
 void init();
 
@@ -40,7 +41,7 @@ void textureInit()
 	FIBITMAP* p32BitsImage = FreeImage_ConvertTo32Bits(pIimage);
 	int iWidth = FreeImage_GetWidth(p32BitsImage);
 	int iHeight = FreeImage_GetHeight(p32BitsImage);
-	glGenTextures(10, text);
+	glGenTextures(3, text);
 	glBindTexture(GL_TEXTURE_2D, text[1]);
 
 	//without mipmap
@@ -56,17 +57,19 @@ void textureInit()
 }
 
 void lighting()
-{
+{   
+	glPushMatrix();
+	glRotatef(X / 10, 0.0, 1.0, 0.0);
 	// enable lighting
 	glEnable(GL_LIGHTING);
-	//Add directed light
 	GLfloat diffuseColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	GLfloat ambientColor[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-	GLfloat position[] = { 0.0f, 10.0f, 0.0f, 1.0f };
+	GLfloat position[] = { 3.0f, 0.0f, 0.0f, 1.0f };
 	glEnable(GL_LIGHT0);								//open light0
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseColor);	//set diffuse color of light0
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientColor);	//set ambient color of light0
 	glLightfv(GL_LIGHT0, GL_POSITION, position);		//set position of light 0
+	glPopMatrix();
 }
 
 int main(int argc, char** argv)
@@ -75,7 +78,6 @@ int main(int argc, char** argv)
 	glutInitWindowSize(windowSize[0], windowSize[1]);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutCreateWindow("ComputerGraphicsDemo");
-	lighting();
 
 	glewInit();
 	textureInit();
@@ -83,6 +85,7 @@ int main(int argc, char** argv)
 
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
+	glutIdleFunc(idle);
 	glutMainLoop();
 
 	return 0;
@@ -93,6 +96,7 @@ void init() {
 	GLuint geom = createShader("Shaders/example.geom", "geometry");
 	GLuint frag = createShader("Shaders/example.frag", "fragment");
 	program = createProgram(vert, geom, frag);
+	lighting();
 
 	//program = createProgram(frag);
 	glGenBuffers(1, &vboName);
@@ -133,25 +137,47 @@ void display()
 		0.0f, 0.0f, 0.0f,// center
 		0.0f, 1.0f, 0.0f);// up
 
+	
+
+	//earth tilt
+	glRotatef(23.5, 1.0f, 0.0f, 0.0f);
+	//earth rotation
+	glRotatef(X, 0.0f, 1.0f, 0.0f);
+
 	GLfloat pmtx[16];
 	GLfloat mmtx[16];
+	
+	GLfloat mdl[16];
+	GLdouble matModelView[16];
+	GLdouble matProjection[16];
+	GLdouble camera[3];
+	int viewport[4];
+	GLfloat light[4];
+	
 	glGetFloatv(GL_PROJECTION_MATRIX, pmtx);
 	glGetFloatv(GL_MODELVIEW_MATRIX, mmtx);
-	GLint pmatLoc = glGetUniformLocation(program, "Projection");
+	glGetLightfv(GL_LIGHT0, GL_POSITION, light);
+
+	//cout << camera[0] << camera[1] << camera[2];
+ 	GLint pmatLoc = glGetUniformLocation(program, "Projection");
 	GLint mmatLoc = glGetUniformLocation(program, "ModelView");
 	GLint texLoc = glGetUniformLocation(program, "Texture");
+	GLint LLoc = glGetUniformLocation(program, "Light");
 
 	glUseProgram(program);
-
+	
+	//input the modelview matrix into vertex shader
 	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
+	//input the rotation matrix into vertex shader
 	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, mmtx);
-	glRotatef(X * 365, 0.0f, 1.0f, 0.0f);
-	//
+	//append the texture into the fragment shader
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, text[1]);
 	glUniform1i(texLoc, 0);
-	//
-	
+
+	//input the light position into fragment shader
+	glUniform4fv(LLoc, 1, light);
+
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 130320);
 	
 	glBindTexture(GL_TEXTURE_2D, NULL);
@@ -185,9 +211,11 @@ VertexAttribute* drawEarth() {
 			vertices[cur].position[0] = x;
 			vertices[cur].position[1] = y;
 			vertices[cur].position[2] = z;
+			vertices[cur].normal[0] = x;
+			vertices[cur].normal[1] = y;
+			vertices[cur].normal[2] = z;
 			vertices[cur].texcoord[0] = 1 - (GLfloat) i / (GLfloat)slice;
 			vertices[cur].texcoord[1] = 1 - (GLfloat) j / (GLfloat)stack;
-			//cout << vertices[cur].texcoord[0] << " " << vertices[cur].texcoord[1] << endl;
 			cur++;
 
 			x = sin(j * stack_step) * cos((i + 1)*slice_step);
@@ -198,13 +226,14 @@ VertexAttribute* drawEarth() {
 			vertices[cur].position[0] = x;
 			vertices[cur].position[1] = y;
 			vertices[cur].position[2] = z;
+			vertices[cur].normal[0] = x;
+			vertices[cur].normal[1] = y;
+			vertices[cur].normal[2] = z;
 			vertices[cur].texcoord[0] = 1 - ((GLfloat)i + 1.0 ) / (GLfloat)slice;
 			vertices[cur].texcoord[1] = 1 - (GLfloat) j / (GLfloat)stack;
-			//cout << vertices[cur].texcoord[0] << " " << vertices[cur].texcoord[1] << endl;
 			cur++;
 		}
 	}
-	cout << cur << endl;
 	return vertices;
 }
 
@@ -252,7 +281,10 @@ void reshape(GLsizei w, GLsizei h)
 int pause = 0;
 void idle() {
 	if (pause != 1) {
-		X = int(X + 1) % 360;
+		X = X + 0.1;
+		if (X >= 360) {
+			X = 0;
+		}
 	}
 	glutPostRedisplay();
 }
