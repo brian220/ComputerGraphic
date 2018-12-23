@@ -13,11 +13,12 @@ out vec3 frag_position;
 out vec3 frag_light_position;
 out vec3 frag_normal;
 
-//in vec4 geom_color[3];
-//out vec4 frag_color;
-
+out vec3 tan;
+out vec3 btan;
+void compute_frag_normal_map();
 void main()
 {
+  compute_frag_normal_map();
   for(int i = 0; i < gl_in.length(); i++)
   {
     gl_Position = gl_in[i].gl_Position;
@@ -27,4 +28,16 @@ void main()
     EmitVertex();
   }
   EndPrimitive();
+}
+
+void compute_frag_normal_map() {
+  vec3 edg1 = geom_position[1] - geom_position[0];
+  vec3 edg2 = geom_position[2] - geom_position[0];
+  vec2 deltaUV1 = geom_UV[1] - geom_UV[0];
+  vec2 deltaUV2 = geom_UV[2] - geom_UV[0];
+  mat2 uv = transpose(mat2(deltaUV1, deltaUV2));
+  mat3x2 edg = transpose(mat2x3(edg1, edg2));
+  mat3x2 tb = inverse(uv) * edg;
+  tan = transpose(tb)[0];
+  btan = transpose(tb)[1];
 }
