@@ -8,7 +8,10 @@
 using namespace std;
 
 const float PI = 3.141592f;
-float X = 0;
+float earthRotationAngle = 0.0;
+float earthRotationSpeed = 0.1;
+float lightRevolutionAngle = 0.0;
+float lightRevolutionSpeed = earthRotationSpeed / 10.0;
 
 struct VertexAttribute
 {
@@ -26,16 +29,19 @@ GLuint text[4];
 bool start;
 
 VertexAttribute *drawEarth();
-VertexAttribute *drawPlane();
 void display();
 void idle();
 void reshape(GLsizei w, GLsizei h);
+void keyboard(unsigned char key, int x, int y);
 void init();
 
+GLint normalMode = 0;
+GLint textureMode = 0;
+GLint specularMode = 0;
 
 void textureInit()
 {
-	//enable 2D texture
+	//enable earth_texture_map
 	glEnable(GL_TEXTURE_2D);
 	FIBITMAP* pIimage = FreeImage_Load(FreeImage_GetFileType("earth_texture_map.jpg", 0), "earth_texture_map.jpg");
 	FIBITMAP* p32BitsImage = FreeImage_ConvertTo32Bits(pIimage);
@@ -54,21 +60,52 @@ void textureInit()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	
+	//enable earth_normal_map
+	glEnable(GL_TEXTURE_2D);
+	FIBITMAP* pIimage2 = FreeImage_Load(FreeImage_GetFileType("earth_normal_map.tif", 0), "earth_normal_map.tif");
+	FIBITMAP* p32BitsImage2 = FreeImage_ConvertTo32Bits(pIimage2);
+	int iWidth2 = FreeImage_GetWidth(p32BitsImage2);
+	int iHeight2 = FreeImage_GetHeight(p32BitsImage2);
+	glBindTexture(GL_TEXTURE_2D, text[2]);
+	//without mipmap
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iWidth2, iHeight2, 0,
+		GL_BGRA, GL_UNSIGNED_BYTE, (void*)FreeImage_GetBits(p32BitsImage2));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	//enable earth_normal_map
+	glEnable(GL_TEXTURE_2D);
+	FIBITMAP* pIimage3 = FreeImage_Load(FreeImage_GetFileType("earth_specular_map.tif", 0), "earth_specular_map.tif");
+	FIBITMAP* p32BitsImage3 = FreeImage_ConvertTo32Bits(pIimage3);
+	int iWidth3 = FreeImage_GetWidth(p32BitsImage3);
+	int iHeight3 = FreeImage_GetHeight(p32BitsImage3);
+	glBindTexture(GL_TEXTURE_2D, text[3]);
+	cout << iWidth << endl;
+	//without mipmap
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, iWidth3, iHeight3, 0,
+		GL_BGRA, GL_UNSIGNED_BYTE, (void*)FreeImage_GetBits(p32BitsImage3));
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void lighting()
+void lightingRotate()
 {   
 	glPushMatrix();
-	glRotatef(X / 10, 0.0, 1.0, 0.0);
-	// enable lighting
-	glEnable(GL_LIGHTING);
-	GLfloat diffuseColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	GLfloat ambientColor[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-	GLfloat position[] = { 3.0f, 0.0f, 0.0f, 1.0f };
-	glEnable(GL_LIGHT0);								//open light0
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseColor);	//set diffuse color of light0
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientColor);	//set ambient color of light0
-	glLightfv(GL_LIGHT0, GL_POSITION, position);		//set position of light 0
+	glRotatef(lightRevolutionAngle, 0, 1, 0);
+	GLfloat lightpos[4] = { -3.0 - 0.0, 0.0 - 0.0,0.0 - 0.0, 1 };
+	glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
 	glPopMatrix();
 }
 
@@ -85,6 +122,7 @@ int main(int argc, char** argv)
 
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
+	glutKeyboardFunc(keyboard);
 	glutIdleFunc(idle);
 	glutMainLoop();
 
@@ -96,7 +134,7 @@ void init() {
 	GLuint geom = createShader("Shaders/example.geom", "geometry");
 	GLuint frag = createShader("Shaders/example.frag", "fragment");
 	program = createProgram(vert, geom, frag);
-	lighting();
+	//lighting();
 
 	//program = createProgram(frag);
 	glGenBuffers(1, &vboName);
@@ -137,21 +175,15 @@ void display()
 		0.0f, 0.0f, 0.0f,// center
 		0.0f, 1.0f, 0.0f);// up
 
-	
+	lightingRotate();
 
 	//earth tilt
 	glRotatef(23.5, 1.0f, 0.0f, 0.0f);
 	//earth rotation
-	glRotatef(X, 0.0f, 1.0f, 0.0f);
+	glRotatef(earthRotationAngle, 0.0f, 1.0f, 0.0f);
 
 	GLfloat pmtx[16];
 	GLfloat mmtx[16];
-	
-	GLfloat mdl[16];
-	GLdouble matModelView[16];
-	GLdouble matProjection[16];
-	GLdouble camera[3];
-	int viewport[4];
 	GLfloat light[4];
 	
 	glGetFloatv(GL_PROJECTION_MATRIX, pmtx);
@@ -162,7 +194,13 @@ void display()
  	GLint pmatLoc = glGetUniformLocation(program, "Projection");
 	GLint mmatLoc = glGetUniformLocation(program, "ModelView");
 	GLint texLoc = glGetUniformLocation(program, "Texture");
+	GLint nMapLoc = glGetUniformLocation(program, "NormalMap");
+	GLint sMapLoc = glGetUniformLocation(program, "SpecularMap");
 	GLint LLoc = glGetUniformLocation(program, "Light");
+
+	GLint nOn = glGetUniformLocation(program, "NormalOn");
+	GLint tOn = glGetUniformLocation(program, "TextureOn");
+	GLint sOn = glGetUniformLocation(program, "SpecularOn");
 
 	glUseProgram(program);
 	
@@ -170,13 +208,28 @@ void display()
 	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
 	//input the rotation matrix into vertex shader
 	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, mmtx);
+
+	
 	//append the texture into the fragment shader
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, text[1]);
 	glUniform1i(texLoc, 0);
+	//append the normal map into the vertex shader
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, text[2]);
+	glUniform1i(nMapLoc, 1);
+	//append the texture into the fragment shader
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, text[3]);
+	glUniform1i(sMapLoc, 2);
 
 	//input the light position into fragment shader
 	glUniform4fv(LLoc, 1, light);
+
+	//input the control signal
+	glUniform1i(nOn, normalMode);
+	glUniform1i(tOn, textureMode);
+	glUniform1i(sOn, specularMode);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 130320);
 	
@@ -185,10 +238,7 @@ void display()
 	
 	glPopMatrix();
 	glutSwapBuffers();
-
 }
-
-
 
 VertexAttribute* drawEarth() {
 
@@ -237,41 +287,6 @@ VertexAttribute* drawEarth() {
 	return vertices;
 }
 
-
-
-
-VertexAttribute *drawPlane() {
-	VertexAttribute *vertices;
-	vertices = new VertexAttribute[6];
-	vertices[0].position[0] = 0.0f;	vertices[0].position[1] = 0.5f;	vertices[0].position[2] = 0.0f;
-	vertices[1].position[0] = 1.0f;	vertices[1].position[1] = 0.5f;	vertices[1].position[2] = 0.0f;
-	vertices[2].position[0] = 0.0f;	vertices[2].position[1] = 0.5f;	vertices[2].position[2] = 1.0f;
-	vertices[3].position[0] = 1.0f;	vertices[3].position[1] = 0.5f;	vertices[3].position[2] = 0.0f;
-	vertices[4].position[0] = 1.0f;	vertices[4].position[1] = 0.5f;	vertices[4].position[2] = 1.0f;
-	vertices[5].position[0] = 0.0f;	vertices[5].position[1] = 0.5f;	vertices[5].position[2] = 1.0f;
-
-	vertices[0].texcoord[0] = 0.3f;
-	vertices[0].texcoord[1] = 0.5f;
-	vertices[1].texcoord[0] = 0.3f;
-	vertices[1].texcoord[1] = 0.5f;
-	vertices[2].texcoord[0] = 0.3f;
-	vertices[2].texcoord[1] = 0.5f;
-	vertices[3].texcoord[0] = 0.3f;
-	vertices[3].texcoord[1] = 0.5f;
-	vertices[4].texcoord[0] = 0.3f;
-	vertices[4].texcoord[1] = 0.5f;
-	vertices[5].texcoord[0] = 0.3f;
-	vertices[5].texcoord[1] = 0.5f;
-
-	//vertices[0].color[0] = 1.0f;	vertices[0].color[1] = 0.0f;	vertices[0].color[2] = 0.0f;
-	//vertices[1].color[0] = 0.0f;	vertices[1].color[1] = 1.0f;	vertices[1].color[2] = 0.0f;
-	//vertices[2].color[0] = 0.0f;	vertices[2].color[1] = 0.0f;	vertices[2].color[2] = 1.0f;
-	//vertices[3].color[0] = 0.0f;	vertices[3].color[1] = 1.0f;	vertices[3].color[2] = 0.0f;
-	//vertices[4].color[0] = 1.0f;	vertices[4].color[1] = 1.0f;	vertices[4].color[2] = 1.0f;
-	//vertices[5].color[0] = 0.0f;	vertices[5].color[1] = 0.0f;	vertices[5].color[2] = 1.0f;
-	return vertices;
-}
-
 void reshape(GLsizei w, GLsizei h)
 {
 	windowSize[0] = w;
@@ -279,11 +294,56 @@ void reshape(GLsizei w, GLsizei h)
 }
 
 int pause = 0;
+void keyboard(unsigned char key, int x, int y) {
+	switch (key) {
+	case 'p':
+	case 'P':
+		if (pause == 0) {
+			pause = 1;
+		}
+		else {
+			pause = 0;
+		}
+		break;
+	case '1':
+		if (textureMode == 0) {
+			textureMode = 1;
+		}
+		else if (textureMode == 1) {
+			textureMode = 0;
+		}
+		break;
+	case '2':
+		if (normalMode == 0) {
+			normalMode = 1;
+		}
+		else if (normalMode == 1) {
+			normalMode = 0;
+		}
+		break;
+	case '3':
+		if (specularMode == 0) {
+			specularMode = 1;
+		}
+		else if (specularMode == 1) {
+			specularMode = 0;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+
 void idle() {
 	if (pause != 1) {
-		X = X + 0.1;
-		if (X >= 360) {
-			X = 0;
+		earthRotationAngle = earthRotationAngle + earthRotationSpeed;
+		if (earthRotationAngle >= 360) {
+			earthRotationAngle = 0;
+		}
+		lightRevolutionAngle = lightRevolutionAngle + lightRevolutionSpeed;
+		if (lightRevolutionAngle >= 360) {
+			lightRevolutionAngle = 0;
 		}
 	}
 	glutPostRedisplay();
