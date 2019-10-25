@@ -61,6 +61,11 @@ void draw_light_bulb(void);
 void camera_light_ball_move();
 GLuint loadTexture(char* name, GLfloat width, GLfloat height);
 
+void saveVerticesDataFromModel();
+void initPhongShader();
+void initGouraudShader();
+void initFlatShader();
+
 namespace
 {
 	char *obj_file_dir = "../Resources/Ball.obj";
@@ -121,9 +126,17 @@ GLfloat light_pos[] = { 1.1, 1.0, 1.3 };
 GLfloat ball_pos[] = { 0.0, 0.0, 0.0 };
 GLfloat ball_rot[] = { 0.0, 10.0, 0.0 };
 
-GLuint vboName;
-GLuint program;
+GLuint phongIndex = 0;
+GLuint gouraudIndex = 1;
+GLuint flatIndex = 2;
+GLuint shaderIndex = 0;
+
+GLuint vaoName[3];
+GLuint vboName[3];
+GLuint program[3];
 GLuint verticeNumber;
+Vertex *vertices;
+
 
 int main(int argc, char *argv[])
 {
@@ -170,18 +183,23 @@ void init(void)
 	glEnable(GL_DEPTH_TEST);
 	print_model_info(model);
 
-	GLuint vert = createShader("Shaders/bump.vert", "vertex");
-	GLuint frag = createShader("Shaders/bump.frag", "fragment");
-	program = createProgram(vert, frag);
+	// Load the model vertices data
+	saveVerticesDataFromModel();
 
-	// Load the model vertices
+	glGenBuffers(3, vboName);
+	glGenVertexArrays(3, vaoName);
+	initPhongShader();
+	initGouraudShader();
+	initFlatShader();
+}
+
+void saveVerticesDataFromModel() {
 	GLuint triangleNumber = model->numtriangles;
 	verticeNumber = triangleNumber * 3;
-	Vertex *vertices;
 	vertices = new Vertex[verticeNumber];
 	for (int i = 0; i < triangleNumber; i++) {
 		int vindex0 = model->triangles[i].vindices[0];
-        int vindex1 = model->triangles[i].vindices[1];
+		int vindex1 = model->triangles[i].vindices[1];
 		int vindex2 = model->triangles[i].vindices[2];
 
 		int nindex0 = model->triangles[i].nindices[0];
@@ -219,10 +237,54 @@ void init(void)
 		vertices[3 * i + 2].texcoord[0] = model->texcoords[2 * tindex2 + 0];
 		vertices[3 * i + 2].texcoord[1] = model->texcoords[2 * tindex2 + 1];
 	}
+}
+
+void initPhongShader() {
+	GLuint vert = createShader("Shaders/phong.vert", "vertex");
+	GLuint frag = createShader("Shaders/phong.frag", "fragment");
+	program[phongIndex] = createProgram(vert, frag);
 
 	//Generate a new buffer object
-	glGenBuffers(1, &vboName);
-	glBindBuffer(GL_ARRAY_BUFFER, vboName);
+	glBindVertexArray(vaoName[phongIndex]);
+	glBindBuffer(GL_ARRAY_BUFFER, vboName[phongIndex]);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * verticeNumber, vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void initGouraudShader() {
+	GLuint vert = createShader("Shaders/gouraud.vert", "vertex");
+	GLuint frag = createShader("Shaders/gouraud.frag", "fragment");
+	program[gouraudIndex] = createProgram(vert, frag);
+
+	//Generate a new buffer object
+	glBindVertexArray(vaoName[gouraudIndex]);
+	glBindBuffer(GL_ARRAY_BUFFER, vboName[gouraudIndex]);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * verticeNumber, vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void initFlatShader() {
+	GLuint vert = createShader("Shaders/flat.vert", "vertex");
+	GLuint frag = createShader("Shaders/flat.frag", "fragment");
+	program[flatIndex] = createProgram(vert, frag);
+
+	//Generate a new buffer object
+	glBindVertexArray(vaoName[flatIndex]);
+	glBindBuffer(GL_ARRAY_BUFFER, vboName[flatIndex]);
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * verticeNumber, vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
@@ -273,12 +335,13 @@ void display(void)
 	glGetFloatv(GL_PROJECTION_MATRIX, pmtx);
 	glGetFloatv(GL_MODELVIEW_MATRIX, mmtx);
 	glGetLightfv(GL_LIGHT0, GL_POSITION, light);
-	GLint pmatLoc = glGetUniformLocation(program, "Projection");
-	GLint mmatLoc = glGetUniformLocation(program, "ModelView");
-	GLint texLoc = glGetUniformLocation(program, "Texture");
-	GLint lLoc = glGetUniformLocation(program, "LightPosition");
+	GLint pmatLoc = glGetUniformLocation(program[shaderIndex], "Projection");
+	GLint mmatLoc = glGetUniformLocation(program[shaderIndex], "ModelView");
+	GLint texLoc = glGetUniformLocation(program[shaderIndex], "Texture");
+	GLint lLoc = glGetUniformLocation(program[shaderIndex], "LightPosition");
 	
-	glUseProgram(program);
+	glUseProgram(program[shaderIndex]);
+	glBindVertexArray(vaoName[shaderIndex]);
 
 	//input the projection matrix into vertex shader
 	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
@@ -313,8 +376,16 @@ void keyboard(unsigned char key, int x, int y) {
 		break;
 	}
 	case 'b': // toggle mode
-	{
-		// you may need to do somting here
+	{   
+		if (shaderIndex == phongIndex) {
+			shaderIndex = gouraudIndex;
+		}
+		else if (shaderIndex == gouraudIndex) {
+			shaderIndex = flatIndex;
+		}
+		else {
+			shaderIndex = phongIndex;
+		}
 		break;
 	}
 	case 'd':
