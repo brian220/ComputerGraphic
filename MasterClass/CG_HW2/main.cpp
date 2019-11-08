@@ -548,6 +548,7 @@ void drawBall(void) {
 	GLint mmatLoc = glGetUniformLocation(program[ballIndex], "ModelView");
 	GLint depthMVLoc = glGetUniformLocation(program[ballIndex], "DepthMV");
 	GLint depthPLoc = glGetUniformLocation(program[ballIndex], "DepthP");
+	GLint lightPosLoc = glGetUniformLocation(program[ballIndex], "LightPos");
 	GLint texLoc = glGetUniformLocation(program[ballIndex], "Texture");
 	GLint depthTexLoc = glGetUniformLocation(program[ballIndex], "DepthTexture");
 
@@ -562,6 +563,8 @@ void drawBall(void) {
 	glUniformMatrix4fv(depthMVLoc, 1, GL_FALSE, ballDepthMV);
 	//Input the projection matrix to light space into vertex shader
 	glUniformMatrix4fv(depthPLoc, 1, GL_FALSE, lightProjectionMatrix);
+	//Input light position for solving shadow acne
+	glUniform3fv(lightPosLoc, 1, light_pos);
 
 	//append the texture into the fragment shader 
 	glEnable(GL_TEXTURE_2D);
@@ -591,6 +594,7 @@ void drawPlane(void) {
 	GLint mmatLoc = glGetUniformLocation(program[planeIndex], "ModelView");
 	GLint depthMVLoc = glGetUniformLocation(program[ballIndex], "DepthMV");
 	GLint depthPLoc = glGetUniformLocation(program[ballIndex], "DepthP");
+	GLint lightPosLoc = glGetUniformLocation(program[ballIndex], "LightPos");
 	GLint texLoc = glGetUniformLocation(program[planeIndex], "Texture");
 	GLint depthTexLoc = glGetUniformLocation(program[ballIndex], "DepthTexture");
 
@@ -605,6 +609,8 @@ void drawPlane(void) {
 	glUniformMatrix4fv(depthMVLoc, 1, GL_FALSE, planeDepthMV);
 	//Input the projection matrix to light space into vertex shader
 	glUniformMatrix4fv(depthPLoc, 1, GL_FALSE, lightProjectionMatrix);
+	//Input light position for solving shadow acne
+	glUniform3fv(lightPosLoc, 1, light_pos);
 
 	// append the texture into the fragment shader
 	glEnable(GL_TEXTURE_2D);

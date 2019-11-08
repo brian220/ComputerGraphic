@@ -4,6 +4,9 @@ uniform sampler2D Texture;
 uniform sampler2D DepthTexture;
 
 in vec2 UV;
+in vec3 FragPos;
+in vec3 FragLightPos;
+in vec3 FragNormal;
 in vec4 FragPosLightSpace;
 
 out vec4 frag_color;
@@ -19,7 +22,9 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	float currentDepth = projCoords.z;
 	
 	// Bias for shadow acne
-	float bias = 0.03;
+	vec3 lightDir = normalize(FragLightPos - FragPos);
+	float bias = max(0.05 * (1.0 - dot(FragNormal, lightDir)), 0.005);
+	
 	// Comppare current depth with cloest depth
 	float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
 	
