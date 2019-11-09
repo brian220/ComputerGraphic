@@ -60,16 +60,20 @@ GLuint loadTexture(char* name, GLfloat width, GLfloat height);
 
 void initDepthMap(void);
 Vertex* saveVerticesDataFromModel(GLMmodel* model);
-void createRabbitShader(void);
 void createBallShader(void);
 void createPlaneShader(void);
+void createRabbitShader(void);
 void createDepthShader(void);
+
+// Create depth map in display()
 void createBallDepthMap(void);
 void createPlaneDepthMap(void);
-void drawRabbit(void);
-void getRabbitDepth(void);
+void createRabbitDepthMap(void);
+
+// Render scene
 void drawBall(void);
 void drawPlane(void);
+void drawRabbit(void);
 
 namespace
 {
@@ -140,8 +144,8 @@ GLfloat ball_pos[] = { 0.0, 0.0, 0.0 };
 GLfloat ball_rot[] = { 0.0, 0.0, 0.0 };
 GLfloat plane_pos[] = { 0.0, -5.0, 0.0 };
 GLfloat plane_rot[] = { 0.0, 0.0, 0.0 };
-GLfloat subModel_pos[] = { -2.295, -5.0, -2.0 };
-GLfloat subModel_rot[] = { 0.0, 0.0, 0.0 };
+GLfloat rabbit_pos[] = { -2.295, -5.0, -2.0 };
+GLfloat rabbit_rot[] = { 0.0, 0.0, 0.0 };
 GLuint rabbitIndex = 0;
 GLuint ballIndex = 1;
 GLuint planeIndex = 2;
@@ -363,34 +367,28 @@ void initDepthMap(void)
 
 GLfloat ballDepthMV[16];
 GLfloat planeDepthMV[16];
+GLfloat rabbitDepthMV[16];
 GLfloat lightProjectionMatrix[16];
 void display(void)
 {    
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//you may need to do something here(declare some local variables you need and maybe load Model matrix here...)
 	// Get the projection matrix from the light
-	
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
-	glGetFloatv(GL_PROJECTION_MATRIX, lightProjectionMatrix);
+	    glLoadIdentity();
+	    glOrtho(-5.0f, 5.0f, -5.0f, 5.0f, 0.1f, 100.0f);
+	    glGetFloatv(GL_PROJECTION_MATRIX, lightProjectionMatrix);
 	glPopMatrix();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	createPlaneDepthMap();
+	glClear(GL_DEPTH_BUFFER_BIT);
 	createBallDepthMap();
+	createRabbitDepthMap();
 	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
-
-	/*
-	glEnable(GL_TEXTURE_2D);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	//drawBall();
-	//drawPlane();
-	glBindTexture(GL_TEXTURE_2D, NULL);*/
 
 	//please try not to modify the following block of code(you can but you are not supposed to)
 	glMatrixMode(GL_MODELVIEW);
@@ -404,7 +402,8 @@ void display(void)
 		eyez-cos(eyet*M_PI / 180)*sin(eyep*M_PI / 180),
 		0.0,
 		1.0,
-		0.0);
+		0.0
+	);
 
 	glPushMatrix();
 		glColor3f(1, 1, 1);
@@ -431,16 +430,13 @@ void display(void)
 		drawPlane();
 	glPopMatrix();
 
-	glPushMatrix();
-	glTranslatef(subModel_pos[0], subModel_pos[1], subModel_pos[2]);
-	glRotatef(subModel_rot[0], 1, 0, 0);
-	glRotatef(subModel_rot[1], 0, 1, 0);
-	glRotatef(subModel_rot[2], 0, 0, 1);
-	// glBindTexture(GL_TEXTURE0, mainTextureID);
-	// you may need to do something here(pass uniform variable(s) to shader and render the model)
-	// glmDraw(rabbitModel, GLM_TEXTURE);
-
-	//drawRabbit();
+    glPushMatrix();
+	   glTranslatef(rabbit_pos[0], rabbit_pos[1], rabbit_pos[2]);
+	   glRotatef(rabbit_rot[0], 1, 0, 0);
+	   glRotatef(rabbit_rot[1], 0, 1, 0);
+	   glRotatef(rabbit_rot[2], 0, 0, 1);
+	   // you may need to do something here(pass uniform variable(s) to shader and render the model)
+	   drawRabbit();
 	glPopMatrix();
 
 	glutSwapBuffers();
@@ -451,44 +447,43 @@ void createBallDepthMap() {
 	// Get the View matrix from the light 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glLoadIdentity();
-	
-	gluLookAt(
-	    light_pos[0],
-		light_pos[1],
-		light_pos[2],
-		// Watch at original
-		0.0,
-		0.0,
-		0.0,
-		// Up vector
-		0.0,
-		1.0,
-		0.0);
+	    glLoadIdentity();
+	    gluLookAt(
+	        light_pos[0],
+		    light_pos[1],
+		    light_pos[2],
+		    // Watch at original
+		    0.0,
+		    0.0,
+		    0.0,
+		    // Up vector
+		    0.0,
+		    1.0,
+		    0.0
+		);
 
-	//  Get the model matrix of ball
-	glTranslatef(ball_pos[0], ball_pos[1], ball_pos[2]);
-	glRotatef(ball_rot[0], 1, 0, 0);
-	glRotatef(ball_rot[1], 0, 1, 0);
-	glRotatef(ball_rot[2], 0, 0, 1);
+	    //  Get the model matrix of ball
+	    glTranslatef(ball_pos[0], ball_pos[1], ball_pos[2]);
+	    glRotatef(ball_rot[0], 1, 0, 0);
+	    glRotatef(ball_rot[1], 0, 1, 0);
+	    glRotatef(ball_rot[2], 0, 0, 1);
 
-	glGetFloatv(GL_MODELVIEW_MATRIX, ballDepthMV);
-	GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
-	GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
+	    glGetFloatv(GL_MODELVIEW_MATRIX, ballDepthMV);
+	    GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
+	    GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
 
-	glUseProgram(program[depthIndex]);
-	// Use ball's VAO
-	glBindVertexArray(vaoName[ballIndex]);
+	    glUseProgram(program[depthIndex]);
+	    // Use ball's VAO
+	    glBindVertexArray(vaoName[ballIndex]);
 
-	//input the projection matrix into vertex shader
-	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, lightProjectionMatrix);
-	//input the modelview matrix into vertex shader
-	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, ballDepthMV);
-	
-	glClear(GL_DEPTH_BUFFER_BIT);
-	GLuint ballVNum = ballModel->numtriangles * 3;
-	glDrawArrays(GL_TRIANGLES, 0, ballVNum);
-	glUseProgram(NULL);
+	    // input the projection matrix into vertex shader
+	    glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, lightProjectionMatrix);
+	    // input the modelview matrix into vertex shader
+	    glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, ballDepthMV);
+	    
+	    GLuint ballVNum = ballModel->numtriangles * 3;
+	    glDrawArrays(GL_TRIANGLES, 0, ballVNum);
+	    glUseProgram(NULL);
 	glPopMatrix();
 }
 
@@ -496,44 +491,89 @@ void createPlaneDepthMap() {
 	// Get the View matrix from the light 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glLoadIdentity();
+	    glLoadIdentity();
+	    gluLookAt(
+		    light_pos[0],
+		    light_pos[1],
+		    light_pos[2],
+		    // Watch at original
+		    0.0,
+		    0.0,
+		    0.0,
+		    // Up vector
+		    0.0,
+		    1.0,
+		    0.0
+		);
 
-	gluLookAt(
-		light_pos[0],
-		light_pos[1],
-		light_pos[2],
-		// Watch at original
-		0.0,
-		0.0,
-		0.0,
-		// Up vector
-		0.0,
-		1.0,
-		0.0);
+	    // Get the model matrix of plane
+	    glTranslatef(plane_pos[0], plane_pos[1], plane_pos[2]);
+	    glRotatef(plane_rot[0], 1, 0, 0);
+	    glRotatef(plane_rot[1], 0, 1, 0);
+	    glRotatef(plane_rot[2], 0, 0, 1);
+	    
+	    glGetFloatv(GL_MODELVIEW_MATRIX, planeDepthMV);
+	    GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
+	    GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
+	    
+	    glUseProgram(program[depthIndex]);
+	    // Use ball's VAO
+	    glBindVertexArray(vaoName[planeIndex]);
+	    
+	    //input the projection matrix into vertex shader
+	    glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, lightProjectionMatrix);
+	    //input the modelview matrix into vertex shader
+	    glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, planeDepthMV);
+	    
+	    GLuint planeVNum = planeModel->numtriangles * 3;
+	    glDrawArrays(GL_TRIANGLES, 0, planeVNum);
+	    glUseProgram(NULL);
+	glPopMatrix();
+}
 
-	//  Get the model matrix of plane
-	glTranslatef(plane_pos[0], plane_pos[1], plane_pos[2]);
-	glRotatef(plane_rot[0], 1, 0, 0);
-	glRotatef(plane_rot[1], 0, 1, 0);
-	glRotatef(plane_rot[2], 0, 0, 1);
+void createRabbitDepthMap(void) {
+	// Get the View matrix from the light 
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	    glLoadIdentity();
+	    gluLookAt(
+	    	light_pos[0],
+	    	light_pos[1],
+	    	light_pos[2],
+	    	// Watch at original
+	    	0.0,
+	    	0.0,
+	    	0.0,
+	    	// Up vector
+	    	0.0,
+	    	1.0,
+	    	0.0
+	    );
+	    
+	    // Get the model matrix of rabbit
+	    glTranslatef(rabbit_pos[0], rabbit_pos[1], rabbit_pos[2]);
+	    glRotatef(rabbit_rot[0], 1, 0, 0);
+	    glRotatef(rabbit_rot[1], 0, 1, 0);
+	    glRotatef(rabbit_rot[2], 0, 0, 1);
+	    
+		// Get the model view of rabbit in the light space
+	    glGetFloatv(GL_MODELVIEW_MATRIX, rabbitDepthMV);
 
-	glGetFloatv(GL_MODELVIEW_MATRIX, planeDepthMV);
-	GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
-	GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
-
-	glUseProgram(program[depthIndex]);
-	// Use ball's VAO
-	glBindVertexArray(vaoName[planeIndex]);
-
-	//input the projection matrix into vertex shader
-	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, lightProjectionMatrix);
-	//input the modelview matrix into vertex shader
-	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, planeDepthMV);
-
-	glClear(GL_DEPTH_BUFFER_BIT);
-	GLuint planeVNum = planeModel->numtriangles * 3;
-	glDrawArrays(GL_TRIANGLES, 0, planeVNum);
-	glUseProgram(NULL);
+	    GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
+	    GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
+	    
+	    glUseProgram(program[depthIndex]);
+	    // Use rabitt's VAO
+	    glBindVertexArray(vaoName[rabbitIndex]);
+	    
+	    //input the projection matrix into vertex shader
+	    glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, lightProjectionMatrix);
+	    //input the modelview matrix into vertex shader
+	    glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, rabbitDepthMV);
+	    
+	    GLuint rabbitVNum = rabbitModel->numtriangles * 3;
+	    glDrawArrays(GL_TRIANGLES, 0, rabbitVNum);
+	    glUseProgram(NULL);
 	glPopMatrix();
 }
 
@@ -592,11 +632,11 @@ void drawPlane(void) {
 	glGetFloatv(GL_MODELVIEW_MATRIX, mmtx);
 	GLint pmatLoc = glGetUniformLocation(program[planeIndex], "Projection");
 	GLint mmatLoc = glGetUniformLocation(program[planeIndex], "ModelView");
-	GLint depthMVLoc = glGetUniformLocation(program[ballIndex], "DepthMV");
-	GLint depthPLoc = glGetUniformLocation(program[ballIndex], "DepthP");
-	GLint lightPosLoc = glGetUniformLocation(program[ballIndex], "LightPos");
+	GLint depthMVLoc = glGetUniformLocation(program[planeIndex], "DepthMV");
+	GLint depthPLoc = glGetUniformLocation(program[planeIndex], "DepthP");
+	GLint lightPosLoc = glGetUniformLocation(program[planeIndex], "LightPos");
 	GLint texLoc = glGetUniformLocation(program[planeIndex], "Texture");
-	GLint depthTexLoc = glGetUniformLocation(program[ballIndex], "DepthTexture");
+	GLint depthTexLoc = glGetUniformLocation(program[planeIndex], "DepthTexture");
 
 	glUseProgram(program[planeIndex]);
 	glBindVertexArray(vaoName[planeIndex]);
@@ -629,7 +669,6 @@ void drawPlane(void) {
 	glUseProgram(NULL);
 }
 
-
 void drawRabbit(void) {
 	GLfloat pmtx[16];
 	GLfloat mmtx[16];
@@ -638,47 +677,40 @@ void drawRabbit(void) {
 	glGetFloatv(GL_MODELVIEW_MATRIX, mmtx);
 	GLint pmatLoc = glGetUniformLocation(program[rabbitIndex], "Projection");
 	GLint mmatLoc = glGetUniformLocation(program[rabbitIndex], "ModelView");
-	GLint texLoc = glGetUniformLocation(program[rabbitIndex], "DepthTexture");
+	GLint depthMVLoc = glGetUniformLocation(program[rabbitIndex], "DepthMV");
+	GLint depthPLoc = glGetUniformLocation(program[rabbitIndex], "DepthP");
+	GLint lightPosLoc = glGetUniformLocation(program[rabbitIndex], "LightPos");
+	GLint texLoc = glGetUniformLocation(program[rabbitIndex], "Texture");
+	GLint depthTexLoc = glGetUniformLocation(program[rabbitIndex], "DepthTexture");
 
 	glUseProgram(program[rabbitIndex]);
 	glBindVertexArray(vaoName[rabbitIndex]);
-    
+
 	//input the projection matrix into vertex shader
 	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
 	//input the modelview matrix into vertex shader
 	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, mmtx);
+	//Input the modelview matrix to light space into vertex shader
+	glUniformMatrix4fv(depthMVLoc, 1, GL_FALSE, rabbitDepthMV);
+	//Input the projection matrix to light space into vertex shader
+	glUniformMatrix4fv(depthPLoc, 1, GL_FALSE, lightProjectionMatrix);
+	//Input light position for solving shadow acne
+	glUniform3fv(lightPosLoc, 1, light_pos);
 
-	//append the texture into the fragment shader 
+	// append the texture into the fragment shader
 	glEnable(GL_TEXTURE_2D);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glBindTexture(GL_TEXTURE_2D, mainTextureID);
 	glUniform1i(texLoc, 0);
 
-	GLuint rabbtVNum = rabbitModel->numtriangles * 3;
-	glDrawArrays(GL_TRIANGLES, 0, rabbtVNum);
-	glUseProgram(NULL);
-	
-}
-
-void getRabbitDepth(void) {
-	GLfloat pmtx[16];
-	GLfloat mmtx[16];
-
-	glGetFloatv(GL_PROJECTION_MATRIX, pmtx);
-	glGetFloatv(GL_MODELVIEW_MATRIX, mmtx);
-	GLint pmatLoc = glGetUniformLocation(program[depthIndex], "Projection");
-	GLint mmatLoc = glGetUniformLocation(program[depthIndex], "ModelView");
-
-	glUseProgram(program[depthIndex]);
-	glBindVertexArray(vaoName[rabbitIndex]);
-
-	//input the projection matrix into vertex shader
-	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
-	//input the modelview matrix into vertex shader
-	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, mmtx);
+	//append the depth texture into the fragment shader 
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glUniform1i(depthTexLoc, 1);
 
 	GLuint rabbitVNum = rabbitModel->numtriangles * 3;
 	glDrawArrays(GL_TRIANGLES, 0, rabbitVNum);
+	glBindTexture(GL_TEXTURE_2D, NULL);
 	glUseProgram(NULL);
 }
 
@@ -1154,7 +1186,7 @@ void keyboardup(unsigned char key, int x, int y)
 
 void idle(void)
 {
-	subModel_rot[1] += 1;
+	rabbit_rot[1] += 1;
 	glutPostRedisplay();
 }
 
