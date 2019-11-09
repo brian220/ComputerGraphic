@@ -58,12 +58,14 @@ void draw_light_bulb(void);
 void camera_light_ball_move();
 GLuint loadTexture(char* name, GLfloat width, GLfloat height);
 
+// Initialization
 void initDepthMap(void);
 Vertex* saveVerticesDataFromModel(GLMmodel* model);
 void createBallShader(void);
 void createPlaneShader(void);
 void createRabbitShader(void);
 void createDepthShader(void);
+void createDissolveDepthShader(void);
 
 // Create depth map in display()
 void createBallDepthMap(void);
@@ -150,9 +152,12 @@ GLuint rabbitIndex = 0;
 GLuint ballIndex = 1;
 GLuint planeIndex = 2;
 GLuint depthIndex = 3;
-GLuint vaoName[4];
-GLuint vboName[4];
-GLuint program[4];
+GLuint dissolveDepthIndex = 4;
+GLuint vaoName[3];
+GLuint vboName[3];
+GLuint program[5];
+GLfloat dissolveThreshold = 0.0;
+
 
 int main(int argc, char *argv[])
 {
@@ -223,6 +228,7 @@ void init(void)
 	createBallShader();
 	createPlaneShader();
 	createDepthShader();
+	createDissolveDepthShader();
 }
 
 void createRabbitShader(void) {
@@ -251,9 +257,15 @@ void createDepthShader(void) {
 	program[depthIndex] = createProgram(vert, frag);
 }
 
+void createDissolveDepthShader(void) {
+	GLuint vert = createShader("Shaders/dissolveDepth.vert", "vertex");
+	GLuint frag = createShader("Shaders/dissolveDepth.frag", "fragment");
+	program[dissolveDepthIndex] = createProgram(vert, frag);
+}
+
 void createBallShader(void) {
-	GLuint vert = createShader("Shaders/shadow.vert", "vertex");
-	GLuint frag = createShader("Shaders/shadow.frag", "fragment");
+	GLuint vert = createShader("Shaders/dissolve.vert", "vertex");
+	GLuint frag = createShader("Shaders/dissolve.frag", "fragment");
 	program[ballIndex] = createProgram(vert, frag);
 
 	glBindVertexArray(vaoName[ballIndex]);
@@ -430,27 +442,30 @@ void display(void)
 		glColor3f(1, 1, 1);
 		draw_light_bulb();
 	glPopMatrix();
-	
-	glPushMatrix();
-		glTranslatef(ball_pos[0], ball_pos[1], ball_pos[2]);
-		glRotatef(ball_rot[0], 1, 0, 0);
-		glRotatef(ball_rot[1], 0, 1, 0);
-		glRotatef(ball_rot[2], 0, 0, 1);
-		glColor3f(1, 1, 1);
-		// you may need to do something here(pass uniform variable(s) to shader and render the model)
-		drawBall();
-	glPopMatrix();
-	
-	glPushMatrix();
-		glTranslatef(plane_pos[0], plane_pos[1], plane_pos[2]);
-		glRotatef(plane_rot[0], 1, 0, 0);
-		glRotatef(plane_rot[1], 0, 1, 0);
-		glRotatef(plane_rot[2], 0, 0, 1);
-		glColor3f(1, 1, 1);
-		// you may need to do something here(pass uniform variable(s) to shader and render the model)
-		drawPlane();
-	glPopMatrix();
 
+	glPushMatrix();
+	    glTranslatef(plane_pos[0], plane_pos[1], plane_pos[2]);
+	    glRotatef(plane_rot[0], 1, 0, 0);
+	    glRotatef(plane_rot[1], 0, 1, 0);
+	    glRotatef(plane_rot[2], 0, 0, 1);
+	    glColor3f(1, 1, 1);
+	    // you may need to do something here(pass uniform variable(s) to shader and render the model)
+	    drawPlane();
+	glPopMatrix();
+	   
+	glPushMatrix();
+	    glTranslatef(ball_pos[0], ball_pos[1], ball_pos[2]);
+	    glRotatef(ball_rot[0], 1, 0, 0);
+	    glRotatef(ball_rot[1], 0, 1, 0);
+	    glRotatef(ball_rot[2], 0, 0, 1);
+	    glColor3f(1, 1, 1);
+	    // you may need to do something here(pass uniform variable(s) to shader and render the model)
+	    glEnable(GL_BLEND);
+	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	    drawBall();
+	    glDisable(GL_BLEND);
+	glPopMatrix();
+	    
     glPushMatrix();
 	   glTranslatef(rabbit_pos[0], rabbit_pos[1], rabbit_pos[2]);
 	   glRotatef(rabbit_rot[0], 1, 0, 0);
@@ -475,11 +490,13 @@ void createBallDepthMap() {
 	    glRotatef(ball_rot[2], 0, 0, 1);
 	    glGetFloatv(GL_MODELVIEW_MATRIX, ballModelMatrix);
 
-	    GLint mLoc = glGetUniformLocation(program[depthIndex], "Model");
-		GLint vLoc = glGetUniformLocation(program[depthIndex], "View");
-		GLint pLoc = glGetUniformLocation(program[depthIndex], "Projection");
+	    GLint mLoc = glGetUniformLocation(program[dissolveDepthIndex], "Model");
+		GLint vLoc = glGetUniformLocation(program[dissolveDepthIndex], "View");
+		GLint pLoc = glGetUniformLocation(program[dissolveDepthIndex], "Projection");
+		GLint noiseTexLoc = glGetUniformLocation(program[dissolveDepthIndex], "NoiseTexture");
+		GLint dissolveTLoc = glGetUniformLocation(program[dissolveDepthIndex], "DissolveT");
 
-	    glUseProgram(program[depthIndex]);
+	    glUseProgram(program[dissolveDepthIndex]);
 	    // Use ball's VAO
 	    glBindVertexArray(vaoName[ballIndex]);
 
@@ -490,6 +507,14 @@ void createBallDepthMap() {
 	    // input the projection matrix into vertex shader
 	    glUniformMatrix4fv(pLoc, 1, GL_FALSE, lightProjectionMatrix);
 	   
+		// Append the noise texture into the fragment shader 
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, noiseTextureID);
+		glUniform1i(noiseTexLoc, 2);
+
+		// Input the dissolve threshold
+		glUniform1f(dissolveTLoc, dissolveThreshold);
+
 	    GLuint ballVNum = ballModel->numtriangles * 3;
 	    glDrawArrays(GL_TRIANGLES, 0, ballVNum);
 	    glUseProgram(NULL);
@@ -561,7 +586,6 @@ void createRabbitDepthMap(void) {
 }
 
 void drawBall(void) {
-	
 	GLfloat pmtx[16];
 	GLfloat mmtx[16];
 
@@ -575,33 +599,43 @@ void drawBall(void) {
 	GLint lightPosLoc = glGetUniformLocation(program[ballIndex], "LightPos");
 	GLint texLoc = glGetUniformLocation(program[ballIndex], "Texture");
 	GLint depthTexLoc = glGetUniformLocation(program[ballIndex], "DepthTexture");
+	GLint noiseTexLoc = glGetUniformLocation(program[ballIndex], "NoiseTexture");
+	GLint dissolveTLoc = glGetUniformLocation(program[ballIndex], "DissolveT");
 
 	glUseProgram(program[ballIndex]);
 	glBindVertexArray(vaoName[ballIndex]);
 
-	//input the projection matrix into vertex shader
+	// Input the projection matrix into vertex shader
 	glUniformMatrix4fv(pmatLoc, 1, GL_FALSE, pmtx);
-	//input the modelview matrix into vertex shader
+	// Input the modelview matrix into vertex shader
 	glUniformMatrix4fv(mmatLoc, 1, GL_FALSE, mmtx);
-	//Input the model matrix to light space into vertex shader
+	// Input the model matrix to light space into vertex shader
 	glUniformMatrix4fv(depthMLoc, 1, GL_FALSE, ballModelMatrix);
 	//Input the view matrix to light space into vertex shader
 	glUniformMatrix4fv(depthVLoc, 1, GL_FALSE, lightViewMatrix);
-	//Input the projection matrix to light space into vertex shader
+	// Input the projection matrix to light space into vertex shader
 	glUniformMatrix4fv(depthPLoc, 1, GL_FALSE, lightProjectionMatrix);
-	//Input light position for solving shadow acne
+	// Input light position for solving shadow acne
 	glUniform3fv(lightPosLoc, 1, light_pos);
 
-	//append the texture into the fragment shader 
+	// Append the texture into the fragment shader 
 	glEnable(GL_TEXTURE_2D);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, mainTextureID);
 	glUniform1i(texLoc, 0);
 	
-	//append the depth texture into the fragment shader 
+	// Append the depth texture into the fragment shader 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, depthMap);
 	glUniform1i(depthTexLoc, 1);
+
+	// Append the noise texture into the fragment shader 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, noiseTextureID);
+	glUniform1i(noiseTexLoc, 2);
+
+	// Input the dissolve threshold
+	glUniform1f(dissolveTLoc, dissolveThreshold);
 
 	GLuint ballVNum = ballModel->numtriangles * 3;
 	glDrawArrays(GL_TRIANGLES, 0, ballVNum);
@@ -716,11 +750,23 @@ void keyboard(unsigned char key, int x, int y) {
 	case '-': // increase dissolve threshold
 	{
 		// you may need to do somting here
+		if (dissolveThreshold <= 1.0) {
+			dissolveThreshold += 0.05;
+		}
+		else {
+			dissolveThreshold = 1.0;
+		}
 		break;
 	}
 	case '=': // decrease dissolve threshold
 	{
 		// you may need to do somting here
+		if (dissolveThreshold >= 0.0) {
+			dissolveThreshold -= 0.05;
+		}
+		else {
+			dissolveThreshold = 0.0;
+		}
 		break;
 	}
 	case 'd':

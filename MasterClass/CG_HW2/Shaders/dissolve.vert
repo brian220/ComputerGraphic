@@ -13,7 +13,6 @@ out vec3 FragPos;
 out vec3 FragNormal;
 out vec4 FragPosLightSpace;
 
-
 void main() {
     gl_Position = Projection * ModelView * vec4(position, 1.0);
 	UV = texcoord;

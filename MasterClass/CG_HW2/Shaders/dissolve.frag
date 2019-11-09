@@ -2,7 +2,9 @@
 precision mediump float;
 uniform sampler2D Texture;
 uniform sampler2D DepthTexture;
+uniform sampler2D NoiseTexture;
 uniform vec3 LightPos;
+uniform float DissolveT;
 
 in vec2 UV;
 in vec3 FragPos;
@@ -47,6 +49,13 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 void main() {
 	float shadow = ShadowCalculation(FragPosLightSpace);
 	vec4 texColor = texture(Texture, UV);
+	// For dissolving effect
+	float noiseValue = texture(NoiseTexture, UV).r;
+	if (noiseValue < DissolveT) {
+		 discard;
+		// texColor = vec4(vec3(texture(Texture, UV)), 0.0);
+	}
+	
 	frag_color = texColor * (1.0 - shadow);
 }
 
