@@ -1,5 +1,13 @@
 #include "sphere.hpp"
 
+void get_sphere_uv(const vec3& p, float &u, float &v) {
+	float PI = 3.14;
+	float phi = atan2(p.z(), p.x());
+	float theta = asin(p.y());
+	u = 1 - (phi + PI) / (2 * PI);
+	v = (theta + (PI / 2)) / PI;
+}
+
 bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const { 
 	vec3 oc = r.origin() - center;
 	float a = dot(r.direction(), r.direction());
@@ -11,6 +19,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const 
 		if (temp < t_max && temp > t_min) {
 			rec.t = temp;
 			rec.p = r.point_at_parameter(rec.t);
+			get_sphere_uv((rec.p - center) / radius, rec.u, rec.v);
 			rec.normal = (rec.p - center) / radius;
 			rec.mat_ptr = mat_ptr;
 			return true;
@@ -19,6 +28,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const 
 		if (temp < t_max && temp > t_min) {
 			rec.t = temp;
 			rec.p = r.point_at_parameter(rec.t);
+			get_sphere_uv((rec.p - center) / radius, rec.u, rec.v);
 			rec.normal = (rec.p - center) / radius;
 			rec.mat_ptr = mat_ptr;
 			return true;

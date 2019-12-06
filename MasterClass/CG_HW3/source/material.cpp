@@ -33,14 +33,13 @@ vec3 random_in_unit_sphere(void) {
 vec3 material::emitted() const {
 	
 	// material that is not light don't returns energy
-	
 	return vec3(0, 0, 0);
 }
 
 bool lambertian::scatter(const ray& r_in, hit_record& rec, vec3& attenuation, ray& scattered) const {
 	vec3 target = rec.p + rec.normal + random_in_unit_sphere();
 	scattered = ray(rec.p, target - rec.p);
-	attenuation = albedo;
+	attenuation = tex_ptr->value_at_uv(rec.u, rec.v, rec.p);
 	return true;
 }
 
