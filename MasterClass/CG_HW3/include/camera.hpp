@@ -4,7 +4,7 @@
 #include "ray.hpp"
 #include "util.hpp"
 
-#define PI 3.14
+
 
 class camera {
 public:
@@ -13,6 +13,7 @@ public:
 
 	// vfov: vertical field of view in degree
 	camera(vec3 lookfrom, vec3 lookat, vec3 up, float vfov, float aspect) {
+		double PI = 3.14;
 		vec3 u, v, w;
 		float theta = vfov * PI / 180;
 		float half_height = tan(theta/2);
@@ -25,13 +26,6 @@ public:
 		lower_left_corner = origin - half_width * u - half_height * v - w;
 		horizontal = 2 * half_width * u;
 		vertical = 2 * half_height * v;
-		
-		//Use a simple camera first
-		/*
-		lower_left_corner = vec3(-1.0, -1.0, -1.0);
-		horizontal = vec3(2.0, 0.0, 0.0);
-		vertical = vec3(0.0, 2.0, 0.0);
-		origin = vec3(0.0, 0.0, 0.0);*/
 	}
 
 	inline ray get_ray(float s, float t) const {

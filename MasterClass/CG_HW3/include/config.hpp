@@ -71,8 +71,7 @@ public:
 		vec3 lookfrom(0, 0, 3.5);
 		vec3 lookat(0, 0, 0);
 
-		//cam = camera(lookfrom, lookat, vec3(0, 1, 0), 45, float(width) / float(height));
-		cam = camera(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 90, float(width) / float(height));
+		cam = camera(lookfrom, lookat, vec3(0, 1, 0), 45, float(width) / float(height));
 	}
 
 	~config()

@@ -23,14 +23,12 @@ class lambertian : public material {
 		// lambertian with texture
         lambertian(texture* tex) : tex_ptr(tex) {}
 		// lambertian with color only
-		// lambertian(const vec3& a) :tex_ptr(new constant_texture(a)) {}
-		lambertian(const vec3& a) : albedo(a) {}
+		lambertian(const vec3& a) :tex_ptr(new constant_texture(a)) {}
 
 		~lambertian() { delete tex_ptr; }
 		
 		virtual bool scatter(const ray& r_in, hit_record& rec, vec3& attenuation, ray& scattered) const override;
 
-		vec3 albedo;
 		texture* tex_ptr;
 };
 
