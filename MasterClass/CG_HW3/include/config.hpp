@@ -14,7 +14,7 @@ class config
 {
 public:
 	config() {
-
+		
 		// Bunny Model
 		std::vector<triangle> bunny_list = LoadModel("./Resources/bunnyLow.obj");
 		material *bunny_material = new lambertian(vec3(1, 1, 1));
