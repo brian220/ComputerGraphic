@@ -84,15 +84,9 @@ bool dielectric::scatter(const ray& r_in, hit_record& rec, vec3& attenuation, ra
 }
 
 vec3 light::emitted() const {
-
-	// write something here ...
-
-	return vec3(0, 0, 0);
+	return emit;
 }
 
 bool light::scatter(const ray& r_in, hit_record& rec, vec3& attenuation, ray& scattered) const {
-
-	// write something here ...
-
 	return false;
 }
